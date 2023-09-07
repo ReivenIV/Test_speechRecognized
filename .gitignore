@@ -8,8 +8,10 @@ coverage/
 .cache/
 .build/
 logs/
+temp_wav
 
 # Fichiers
 .env
 *.log
 *.db
+package-lock.json
