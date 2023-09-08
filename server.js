@@ -1,120 +1,78 @@
-const express = require("express");
-const app = express();
-const dotenv = require("dotenv");
-const { HTTP_STATUS } = require("./utils/constants");
-const sdk = require("microsoft-cognitiveservices-speech-sdk");
-const multer = require("multer");
-const fs = require("fs");
-const path = require("path");
+import express from "express";
+import dotenv from "dotenv";
+import { HTTP_STATUS, CODE_ISO } from "./utils/constants.js";
+import * as sdk from "microsoft-cognitiveservices-speech-sdk";
+import bodyParser from 'body-parser';
+import cors from "cors";
+import { isString, isStringEmpty, isBase64 } from "./utils/utils.js";
 
 dotenv.config();
-const cors = require("cors");
+const app = express();
 app.use(express.json({ limit: "10mb" }));
-app.use(express.json());
 app.use(cors());
+app.use(bodyParser.json());
 
 // Routes
-const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
 
-app.post("/vocal_recognition", async (req, res) => {
+app.post("/v2/vocal_recognition", async (req, res) => {
   // Check if the required parameters are provided
-  if (!req.body.language || !req.body.audio_data) {
+  if (!req.body.language.trim() || !req.body.audio_data) {
     return res
       .status(HTTP_STATUS.BAD_REQUEST)
       .json({ error: "Missing required parameters." });
   }
 
+  if (!isBase64(req.body.audio_data)) {
+    return res
+      .status(HTTP_STATUS.BAD_REQUEST)
+      .json({ error: "audio_data isn't base64" });
+  }
   // Decode the base64 string to binary data
   let audioBuffer = Buffer.from(req.body.audio_data, "base64");
-
-  // Save the binary data to a temporary WAV file
-  let tempFilePath = path.join(__dirname, `temp_wav/${req.body.user_id}temp.wav`);
-
   try {
-    await saveAudioFileAsync(tempFilePath, audioBuffer);
-  } catch (error) {
-    console.error("Error writing audio data to file:", error);
-    return res
-      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
-      .json({ error: "Internal server error." });
-  }
+    const speechRecognizer = configSpeech(audioBuffer, req.body.language);
+    speechRecognizer.recognizeOnceAsync((result) => {
+      switch (result.reason) {
+        case sdk.ResultReason.RecognizedSpeech:
+          // Get the recognized text and send it as a response
+          const recognizedText = result.text;
+          return res.status(HTTP_STATUS.OK).json({ data: recognizedText });
 
-  try {
-    // Config
-    const speechConfig = sdk.SpeechConfig.fromSubscription(
-      process.env.API_KEY,
-      process.env.REGION,
-    );
-    speechConfig.speechRecognitionLanguage = req.body.language;
+        case sdk.ResultReason.NoMatch:
+          return res
+            .status(HTTP_STATUS.NOT_FOUND)
+            .json({ error: "Speech could not be recognized." });
 
-    fs.readFile(tempFilePath, (err, data) => {
-      if (err) throw err;
-      else {
-        let audioConfig = sdk.AudioConfig.fromWavFileInput(data);
+        case sdk.ResultReason.Canceled:
+          const cancellation = sdk.CancellationDetails.fromResult(result);
 
-        let speechRecognizer = new sdk.SpeechRecognizer(speechConfig, audioConfig);
-
-        speechRecognizer.recognizeOnceAsync((result) => {
-          switch (result.reason) {
-            case sdk.ResultReason.RecognizedSpeech:
-              // Get the recognized text and send it as a response
-              const recognizedText = result.text;
-              res.status(HTTP_STATUS.OK).json({ data: recognizedText });
-              break;
-
-            case sdk.ResultReason.NoMatch:
-              res
-                .status(HTTP_STATUS.NOT_FOUND)
-                .json({ error: "Speech could not be recognized." });
-                break;
-
-            case sdk.ResultReason.Canceled:
-              const cancellation = sdk.CancellationDetails.fromResult(result);
-
-              if (cancellation.reason == sdk.CancellationReason.Error) {
-                console.error(`CANCELED: ErrorCode=${cancellation.ErrorCode}`);
-                console.error(`CANCELED: ErrorDetails=${cancellation.errorDetails}`);
-                res
-                  .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
-                  .json({ error: "Internal server error." });
-              }
-
-              res.status(HTTP_STATUS.BAD_REQUEST).json({ error: "Bad request." });
-              break;
-            default:
-              console.error("Je suis imprévisible");
-              break;
+          if (cancellation.reason == sdk.CancellationReason.Error) {
+            console.error(`CANCELED: ErrorCode=${cancellation.ErrorCode}`);
+            console.error(`CANCELED: ErrorDetails=${cancellation.errorDetails}`);
+            return res
+              .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+              .json({ error: "Internal server error." });
           }
-          speechRecognizer.close();
 
-          // Clean up: Delete the temporary WAV file
-          fs.unlinkSync(tempFilePath);
-        });
-        
-        console.log("J'ai fini de lire");
+          return res.status(HTTP_STATUS.BAD_REQUEST).json({ error: "Bad request." });
       }
+      speechRecognizer.close();
+
     });
-  } catch (error) {
-    console.error("Error processing audio data:", error);
-    return res
-      .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
-      .json({ error: "Internal server error." });
+
+  }catch (err) {
+    console.error("error : ", err)
   }
 });
 
-// Async function to save audio data to a file
-function saveAudioFileAsync(filePath, audioBuffer) {
-  return new Promise((resolve, reject) => {
-    fs.writeFile(filePath, audioBuffer, (err) => {
-      if (err) {
-        console.log("Error in saveAudioFileAsync");
-        reject(err);
-      } else {
-        resolve();
-      }
-    });
-  });
+const configSpeech = (buffer, language) => {
+  const speechConfig = sdk.SpeechConfig.fromSubscription(
+    process.env.KEY_AZURE,
+    process.env.REGION,
+  );
+  speechConfig.speechRecognitionLanguage = language;
+  const audioConfig = sdk.AudioConfig.fromWavFileInput(buffer);
+  return new sdk.SpeechRecognizer(speechConfig, audioConfig);
 }
 
 const PORT = process.env.PORT || 5000;
