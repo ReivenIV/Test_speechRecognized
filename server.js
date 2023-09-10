@@ -4,7 +4,6 @@ import { HTTP_STATUS, CODE_ISO } from "./utils/constants.js";
 import * as sdk from "microsoft-cognitiveservices-speech-sdk";
 import bodyParser from 'body-parser';
 import cors from "cors";
-import { isString, isStringEmpty, isBase64 } from "./utils/utils.js";
 
 dotenv.config();
 const app = express();
@@ -15,6 +14,7 @@ app.use(bodyParser.json());
 // Routes
 
 app.post("/v2/vocal_recognition", async (req, res) => {
+
   // Check if the required parameters are provided
   if (!req.body.language.trim() || !req.body.audio_data) {
     return res
@@ -27,6 +27,7 @@ app.post("/v2/vocal_recognition", async (req, res) => {
       .status(HTTP_STATUS.BAD_REQUEST)
       .json({ error: "audio_data isn't base64" });
   }
+  
   // Decode the base64 string to binary data
   let audioBuffer = Buffer.from(req.body.audio_data, "base64");
   try {
