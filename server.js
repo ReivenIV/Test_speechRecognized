@@ -1,6 +1,5 @@
 import express from "express";
 import dotenv from "dotenv";
-import { HTTP_STATUS, CODE_ISO } from "./utils/constants.js";
 import * as sdk from "microsoft-cognitiveservices-speech-sdk";
 import bodyParser from 'body-parser';
 import cors from "cors";
@@ -13,19 +12,19 @@ app.use(bodyParser.json());
 
 // Routes
 
-app.post("/v2/vocal_recognition", async (req, res) => {
+app.post("/vocal_recognition", async (req, res) => {
 
   // Check if the required parameters are provided
-  if (!req.body.language.trim() || !req.body.audio_data) {
+  if (!req.body.language.trim() || typeof req.body.audio_data !== "string") {
     return res
-      .status(HTTP_STATUS.BAD_REQUEST)
+      .status(400)
       .json({ error: "Missing required parameters." });
   }
 
-  if (!isBase64(req.body.audio_data)) {
+  if (!req.body.audio_data || typeof req.body.audio_data !== "string") {
     return res
-      .status(HTTP_STATUS.BAD_REQUEST)
-      .json({ error: "audio_data isn't base64" });
+      .status(400)
+      .json({ error: "missing required audio_data" });
   }
   
   // Decode the base64 string to binary data
@@ -37,11 +36,11 @@ app.post("/v2/vocal_recognition", async (req, res) => {
         case sdk.ResultReason.RecognizedSpeech:
           // Get the recognized text and send it as a response
           const recognizedText = result.text;
-          return res.status(HTTP_STATUS.OK).json({ data: recognizedText });
+          return res.status(200).json({ data: recognizedText });
 
         case sdk.ResultReason.NoMatch:
           return res
-            .status(HTTP_STATUS.NOT_FOUND)
+            .status(404)
             .json({ error: "Speech could not be recognized." });
 
         case sdk.ResultReason.Canceled:
@@ -51,11 +50,11 @@ app.post("/v2/vocal_recognition", async (req, res) => {
             console.error(`CANCELED: ErrorCode=${cancellation.ErrorCode}`);
             console.error(`CANCELED: ErrorDetails=${cancellation.errorDetails}`);
             return res
-              .status(HTTP_STATUS.INTERNAL_SERVER_ERROR)
+              .status(500)
               .json({ error: "Internal server error." });
           }
 
-          return res.status(HTTP_STATUS.BAD_REQUEST).json({ error: "Bad request." });
+          return res.status(400).json({ error: "Bad request." });
       }
       speechRecognizer.close();
 

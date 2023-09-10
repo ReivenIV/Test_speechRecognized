@@ -1,5 +1,5 @@
 ###
-POST http://localhost:5000/v2/vocal_recognition
+POST http://localhost:5000/vocal_recognition
 Content-Type: application/json
 
 {	
