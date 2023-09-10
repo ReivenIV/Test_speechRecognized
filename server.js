@@ -10,7 +10,6 @@ app.use(express.json({ limit: "10mb" }));
 app.use(cors());
 app.use(bodyParser.json());
 
-// Routes
 
 app.post("/vocal_recognition", async (req, res) => {
 
