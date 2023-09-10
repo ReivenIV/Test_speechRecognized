@@ -35,7 +35,7 @@ app.post("/vocal_recognition", async (req, res) => {
         case sdk.ResultReason.RecognizedSpeech:
           // Get the recognized text and send it as a response
           const recognizedText = result.text;
-          return res.status(200).json({ data: recognizedText });
+          return res.status(200).json({ recognized_word: recognizedText });
 
         case sdk.ResultReason.NoMatch:
           return res

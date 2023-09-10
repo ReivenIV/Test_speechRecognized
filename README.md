@@ -41,7 +41,8 @@ The server will start on the port specified in your `.env` file or on port 5000 
 
 ## Usage
 
-To use the vocal recognition service, you can make a POST request to the `/v2/vocal_recognition` endpoint with the following JSON payload:
+To use the vocal recognition service, you can make a POST request to the `your_url/vocal_recognition` endpoint with the following JSON payload:
+
 
 ```json
 {
@@ -52,7 +53,29 @@ To use the vocal recognition service, you can make a POST request to the `/v2/vo
 
 Replace `"en-US"` with the desired recognition language code, and `"base64-encoded-audio-data"` with your audio data encoded in base64.
 
+example of other language format : 
+ - arab: "ar-MA", //Maroc
+ - german: "de-DE",
+ - english: "en-GB", //Royaume-uni
+ - spanish: "es-ES",
+ - finnish: "fi-FI",
+ - french: "fr-FR",
+ - italian: "it-IT",
+ - dutch: "nl-NL",
+ -  portuguese: "pt-PT",
+ - ukrainian: "uk-UA",
+
+
+### Response format
+
 The server will respond with the recognized text if successful.
+
+example : 
+```JSON
+{
+  "recognized_word":"your words"
+}
+```
 
 ## Error Handling
 
