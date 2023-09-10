@@ -65,3 +65,8 @@ Feel free to contribute to this project by opening issues or creating pull reque
 ---
 ## [Reminder]
 Make sure to replace `<Your Azure Cognitive Services Subscription Key>` and `<Your Azure Region>` with your actual Azure subscription key and region in the `.env` setup section. You can also customize the README further to include additional information about the project, dependencies, and any specific instructions for running or deploying it.
+
+### Extra ressources for Azure Speech Service
+https://learn.microsoft.com/en-us/azure/ai-services/speech-service/get-started-speech-to-text?tabs=windows%2Cterminal&pivots=programming-language-javascript
+
+ https://learn.microsoft.com/en-us/dotnet/api/microsoft.cognitiveservices.speech.speechrecognizer.recognizeonceasync?view=azure-dotnet
